@@ -1,0 +1,30 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>渠道转化报表 · 成果演示</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eff3ed;color:#142d25;font:16px/1.55 system-ui,sans-serif}main{max-width:1120px;margin:auto;padding:24px}.nav{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.nav a{color:#285e48;font-weight:700}.tag{font-size:.875rem;border-radius:40px;padding:5px 13px;background:#dceadd;color:#22513e;white-space:nowrap}.hero{background:#173e30;padding:28px 36px;color:white;border-radius:24px}.hero strong{color:#c9ef85;font-size:.875rem;letter-spacing:.11em}.hero h1{margin:.25em 0;font-size:clamp(2rem,5vw,3.2rem);line-height:1.16}.hero p{margin:.5em 0 0;color:#e1eee3}.filters{display:flex;gap:12px;align-items:end;margin:20px 0;flex-wrap:wrap}label{display:grid;gap:4px;font-size:.875rem;font-weight:750;min-width:140px}select,button{font:inherit;border:1px solid #c9d7cb;border-radius:10px;background:#fff;color:#183b2d;padding:8px 12px}button{cursor:pointer}button:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #257746;outline-offset:2px}#range{color:#4a6153;margin-left:auto;font-size:.875rem}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kpi,.panel{background:white;border-radius:18px;padding:17px}.kpi span{color:#4a6153;font-size:.875rem}.kpi strong{font-size:clamp(1.2rem,3vw,2rem);display:block;letter-spacing:-.04em}.panel{margin-top:15px;padding:20px}h2{margin:0 0 4px;font-size:1.2rem}.muted{font-size:.875rem;color:#486054;margin:0 0 12px}.chart{display:block;width:100%;height:auto;aspect-ratio:760/210;min-height:120px}.table{overflow:auto}table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}th,td{text-align:right;white-space:nowrap;padding:9px;border-bottom:1px solid #e5ede6}th:first-child,td:first-child{text-align:left}th{font-size:.875rem;color:#486054}tfoot td{font-weight:800}footer{color:#486054;margin-top:14px;font-size:.875rem}@media(max-width:620px){main{padding:14px}.hero{padding:21px}.kpis{grid-template-columns:repeat(2,1fr)}label{min-width:125px}#range{margin-left:0;width:100%}.panel{padding:12px}}
+</style></head><body><main><div class="nav"><a href="./index.html">交互演示：顺手带</a><span class="tag">公开样稿 · 模拟数据</span></div><header class="hero"><strong>数据分析样稿</strong><h1>渠道转化报表</h1><p>切换日期区间或渠道，观察访问、下单与支付的变化。所有数字均为虚构示例。</p></header>
+<section aria-label="筛选条件" class="filters"><label>日期范围<select id="days"><option value="7">最近 7 天</option><option value="14" selected>最近 14 天</option><option value="30">最近 30 天</option></select></label><label>访问渠道<select id="channel"><option value="all">全部渠道</option><option value="0">微信分享</option><option value="1">直接访问</option><option value="2">搜索访问</option></select></label><button id="reset" type="button">重置</button><span id="range" aria-live="polite"></span></section>
+<section class="kpis" aria-label="核心指标" aria-live="polite"><div class="kpi"><span>访问人数</span><strong id="uv"></strong></div><div class="kpi"><span>下单数</span><strong id="orders"></strong></div><div class="kpi"><span>支付单数</span><strong id="paid"></strong></div><div class="kpi"><span>访问到支付转化</span><strong id="cvr"></strong></div></section>
+<section class="panel"><h2>每日支付单数</h2><p class="muted">趋势随筛选条件更新。每天的数值也可在下方明细中查看。</p><svg id="plot" class="chart" viewBox="0 0 760 210" role="img" aria-label="每日支付单数趋势"></svg></section>
+<section class="panel"><h2>每日明细</h2><div class="table"><table aria-label="日期与转化明细"><thead><tr><th scope="col">日期</th><th scope="col">访问人数</th><th scope="col">下单数</th><th scope="col">支付单数</th><th scope="col">支付转化</th></tr></thead><tbody id="rows"></tbody><tfoot id="totals"></tfoot></table></div></section><footer>模拟快照：截至 2026-11-18，不连公司数据源，不代表实际业绩。</footer></main>
+<script>
+const el=id=>document.getElementById(id), fmt=n=>n.toLocaleString('zh-CN'), pct=(paid,uv)=>(uv?paid/uv*100:0).toFixed(2)+'%';
+const data=Array.from({length:30},(_,i)=>({date:new Date(Date.UTC(2026,9,20+i)).toISOString().slice(0,10),metrics:[0,1,2].map(c=>{
+const uv=Math.round([580,350,240][c]+i*[8,5,3][c]+Math.sin(i*.83+c)*[120,65,46][c]+(i%7===4?85:0));
+const orders=Math.round(uv*([.13,.11,.09][c]+.012*Math.sin(i*.56+c)));return {uv,orders,paid:Math.round(orders*(.75+.04*Math.cos(i*.38+c)))}
+})}));
+const sum=(xs)=>xs.reduce((s,m)=>({uv:s.uv+m.uv,orders:s.orders+m.orders,paid:s.paid+m.paid}),{uv:0,orders:0,paid:0});
+function render(){
+const days=Number(el('days').value),pick=el('channel').value,a=data.slice(-days).map(d=>({date:d.date,...(pick==='all'?sum(d.metrics):d.metrics[Number(pick)])})), t=sum(a);
+el('range').textContent=a[0].date+' 至 '+a.at(-1).date;for(const key of ['uv','orders','paid'])el(key).textContent=fmt(t[key]);el('cvr').textContent=pct(t.paid,t.uv);
+const cols=r=>'<td>'+fmt(r.uv)+'</td><td>'+fmt(r.orders)+'</td><td>'+fmt(r.paid)+'</td><td>'+pct(r.paid,r.uv)+'</td>';
+el('rows').innerHTML=a.slice().reverse().map(r=>'<tr><td>'+r.date+'</td>'+cols(r)+'</tr>').join('');
+el('totals').innerHTML='<tr><td>汇总</td>'+cols(t)+'</tr>';
+const max=Math.ceil(Math.max(...a.map(r=>r.paid))/30)*30,x=i=>50+i*688/(a.length-1),y=n=>173-145*n/max;
+const points=a.map((r,i)=>x(i)+' '+y(r.paid));
+const lines=[0,1,2,3].map(i=>'<path d="M50 '+y(i*max/3)+'H738" stroke="#dce8df"/><text x="41" y="'+(y(i*max/3)+4)+'" text-anchor="end" fill="#476253" font-size="14">'+i*max/3+'</text>');
+const labels=[0,Math.floor((a.length-1)/2),a.length-1].map(i=>'<text x="'+x(i)+'" y="200" text-anchor="middle" fill="#476253" font-size="15">'+a[i].date.slice(5)+'</text>');
+el('plot').innerHTML=lines.join('')+'<path d="M50 173 L'+points.join(' L')+' L738 173 Z" fill="#dbedda"/><polyline points="'+points.join(',')+'" fill="none" stroke="#26714a" stroke-width="3"/>'+labels.join('');
+}
+for(const id of ['days','channel'])el(id).addEventListener('change',render);
+el('reset').addEventListener('click',()=>{el('days').value='14';el('channel').value='all';render()});render();
+</script></body></html>
